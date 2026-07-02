@@ -56,7 +56,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { CldUploadWidget } from "next-cloudinary";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -87,7 +86,7 @@ function Lecture() {
 
     formData.append("videoType", videoType);
     formData.append("videoUrl", Lecture.videoUrl);
-    formData.append("video_public_id", Lecture.thumbnail ?? null);
+    formData.append("video_public_id", Lecture?.video_public_id ?? null);
     formData.append("thumbnail", Lecture.thumbnail ?? null);
     formData.append("course", courseID);
     formData.append("status", isChecked ? "free" : "paid");
@@ -143,7 +142,7 @@ function Lecture() {
       ...Lecture,
       videoUrl: info.secure_url,
       video_public_id: info.public_id,
-      thumbnail: info.thumbnail_url,
+      thumbnail: info.thumbnail_url || null,
     });
   };
 
@@ -425,5 +424,4 @@ function LectureSuspense()
 }
 
 export default LectureSuspense;
-
 

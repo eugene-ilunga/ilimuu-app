@@ -3,6 +3,10 @@ import Lecture from "../../../model/lectureModel";
 import { connectToDB } from "../../../../utils/database";
 import { ObjectId } from "mongodb";
 
+function toOptionalValue(value) {
+    return value ? String(value) : null;
+}
+
 const requiredFields = [
     "title",
     "duration",
@@ -71,14 +75,14 @@ export async function POST(req, res) {
         if (contentType === "video" || contentType === "both") {
             lectureData.videoType = data.get("videoType");
             lectureData.videoUrl = data.get("videoUrl");
-            lectureData.video_public_id = data.get("video_public_id");
-            lectureData.thumbnail = data.get("thumbnail");
+            lectureData.video_public_id = toOptionalValue(data.get("video_public_id"));
+            lectureData.thumbnail = toOptionalValue(data.get("thumbnail"));
         }
         
         // Add PDF fields only if content type is "pdf" or "both"
         if (contentType === "pdf" || contentType === "both") {
             lectureData.pdfUrl = data.get("pdfUrl");
-            lectureData.pdf_public_id = data.get("pdf_public_id");
+            lectureData.pdf_public_id = toOptionalValue(data.get("pdf_public_id"));
         }
 
         await connectToDB();

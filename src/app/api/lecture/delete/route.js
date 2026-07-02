@@ -1,6 +1,21 @@
 import { NextResponse } from "next/server";
 import Lecture from "../../../model/lectureModel";
 import { connectToDB } from "../../../../utils/database";
+import { deleteStoredFile } from "../../../../utils/local-file-storage";
+
+async function deleteLectureAssets(lecture) {
+    const references = [
+        lecture?.video_public_id,
+        lecture?.videoUrl,
+        lecture?.thumbnail,
+        lecture?.pdf_public_id,
+        lecture?.pdfUrl,
+    ].filter(Boolean);
+
+    await Promise.all(
+        [...new Set(references)].map((reference) => deleteStoredFile(reference))
+    );
+}
 
 export async function DELETE(req, res) {
     try {
@@ -25,6 +40,8 @@ export async function DELETE(req, res) {
             );
         }
 
+        await deleteLectureAssets(deletedLecture);
+
         return NextResponse.json({
             status: 200,
             message: "Lecture deleted successfully",
@@ -38,4 +55,3 @@ export async function DELETE(req, res) {
         });
     }
 }
-

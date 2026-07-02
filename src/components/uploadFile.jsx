@@ -1,6 +1,5 @@
 "use client";
 import { useState, useRef } from "react";
-import Image from "next/image";
 import {
   Upload,
   Video,
@@ -57,17 +56,15 @@ const UploadWidget = ({ onUpload }) => {
       const data = await response.json();
 
       if (data.status && data.url) {
-        // For video, we'll use the video URL as thumbnail for now
-        // Cloudinary generates thumbnail automatically for videos
         const uploadData = {
           secure_url: data.url,
           public_id: data.public_id,
-          thumbnail_url: data.thumbnail_url || data.url, // Fallback to video URL
+          thumbnail_url: data.thumbnail_url || null,
           videoUrl: data.url,
         };
 
         setVideoUrl(data.url);
-        setThumbnail(data.thumbnail_url || data.url);
+        setThumbnail(data.thumbnail_url || null);
         if (onUpload) {
           onUpload(uploadData);
         }
@@ -111,15 +108,23 @@ const UploadWidget = ({ onUpload }) => {
         className="hidden"
       />
 
-      {thumbnail ? (
+      {videoUrl ? (
         <div className="space-y-2">
           <div className="relative w-full aspect-video rounded-md overflow-hidden border bg-slate-100">
-            <Image
-              alt="Video thumbnail"
-              src={thumbnail}
-              fill
-              className="object-cover"
-            />
+            {thumbnail ? (
+              <img
+                alt="Video thumbnail"
+                src={thumbnail}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <video
+                src={videoUrl}
+                className="h-full w-full object-cover"
+                controls
+                preload="metadata"
+              />
+            )}
             <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
               <Video className="h-8 w-8 text-white" />
             </div>
@@ -159,7 +164,7 @@ const UploadWidget = ({ onUpload }) => {
         </div>
       )}
 
-      {!thumbnail && !uploading && (
+      {!videoUrl && !uploading && (
         <Button
           type="button"
           onClick={handleButtonClick}

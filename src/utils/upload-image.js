@@ -1,106 +1,80 @@
-// utils/uploadImage.js
+async function uploadFileToApi(file, setUploading, setUploadProgress) {
+  const formData = new FormData();
+  formData.append("file", file);
 
-export const uploadImage = async (file, setUploading, setUploadProgress, setImage, image) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_PRESET); // Replace with your Cloudinary upload preset
-    formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY);
-    
+  return new Promise((resolve, reject) => {
     try {
       setUploading(true);
       const xhr = new XMLHttpRequest();
-      xhr.open(
-        "POST",
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_PRESET}/image/upload`
-      );
-  
+      xhr.open("POST", "/api/fileupload");
+
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           const percentComplete = (event.loaded / event.total) * 100;
           setUploadProgress(percentComplete);
         }
       };
-  
+
       xhr.onload = () => {
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
-          setImage({ ...image, thumbnail: data.secure_url });
-          setUploading(false);
-          setUploadProgress(0); // Reset progress bar
-        } else {
-          console.error("Image upload failed: ", xhr.responseText);
-          setUploading(false);
-        }
-      };
-  
-      xhr.onerror = () => {
-        console.error("Image upload failed.");
         setUploading(false);
+        setUploadProgress(0);
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = JSON.parse(xhr.responseText);
+
+          if (data.status && data.url) {
+            resolve(data);
+            return;
+          }
+
+          reject(new Error(data.error || "Upload failed"));
+          return;
+        }
+
+        reject(new Error(`Upload failed: ${xhr.responseText}`));
       };
-  
+
+      xhr.onerror = () => {
+        setUploading(false);
+        setUploadProgress(0);
+        reject(new Error("Upload failed due to a network error."));
+      };
+
       xhr.send(formData);
     } catch (error) {
-      console.error("Image upload failed: ", error);
       setUploading(false);
+      setUploadProgress(0);
+      reject(error);
     }
-  };
-  
+  });
+}
 
-  export const uploadImagePromised = async (file, setUploading, setUploadProgress) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_PRESET); // Replace with your Cloudinary upload preset
-    formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY);
-  
-    // Detect if file is video or image
-    const isVideo = file.type.startsWith("video/");
-    const resourceType = isVideo ? "video" : "image";
-    
-    // Use cloud name if available, otherwise fall back to preset (for backward compatibility)
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_PRESET;
-  
-    return new Promise((resolve, reject) => {
-      try {
-        setUploading(true);
-        const xhr = new XMLHttpRequest();
-        xhr.open(
-          "POST",
-          `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`
-        );
-  
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percentComplete = (event.loaded / event.total) * 100;
-            setUploadProgress(percentComplete);
-          }
-        };
-  
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            const data = JSON.parse(xhr.responseText);
-            setUploading(false);
-            setUploadProgress(0); // Reset progress bar
-            // Return both URL and type
-            resolve({
-              url: data.secure_url,
-              type: resourceType
-            });
-          } else {
-            setUploading(false);
-            reject(new Error(`${resourceType === 'video' ? 'Video' : 'Image'} upload failed: ${xhr.responseText}`));
-          }
-        };
-  
-        xhr.onerror = () => {
-          setUploading(false);
-          reject(new Error(`${resourceType === 'video' ? 'Video' : 'Image'} upload failed due to a network error.`));
-        };
-  
-        xhr.send(formData);
-      } catch (error) {
-        setUploading(false);
-        reject(error);
-      }
-    });
+export const uploadImage = async (
+  file,
+  setUploading,
+  setUploadProgress,
+  setImage,
+  image
+) => {
+  try {
+    const data = await uploadFileToApi(file, setUploading, setUploadProgress);
+    setImage({ ...image, thumbnail: data.url });
+  } catch (error) {
+    console.error("Image upload failed: ", error);
+  }
+};
+
+export const uploadImagePromised = async (
+  file,
+  setUploading,
+  setUploadProgress
+) => {
+  const data = await uploadFileToApi(file, setUploading, setUploadProgress);
+  const type = file.type.startsWith("video/") ? "video" : "image";
+
+  return {
+    public_id: data.public_id,
+    type,
+    url: data.url,
   };
-  
+};

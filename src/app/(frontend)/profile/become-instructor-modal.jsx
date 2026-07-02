@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { uploadImagePromised } from "@/utils/upload-image"
 
 
 
@@ -136,55 +137,6 @@ console.log(userData);
     }
   }
 
-  // Handle image upload
-  const uploadImage = async (file) => {
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_PRESET || "")
-    formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || "")
-
-    try {
-      setUploading(true)
-      const xhr = new XMLHttpRequest()
-      xhr.open(
-        "POST",
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_PRESET}/image/upload`,
-      )
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = (event.loaded / event.total) * 100
-          setUploadProgress(percentComplete)
-        }
-      }
-
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText)
-          setformUserData((prev) => ({ ...prev, image: data.secure_url }))
-          setUploading(false)
-          setUploadProgress(0)
-        } else {
-          console.error("Image upload failed: ", xhr.responseText)
-          toast.error("Image upload failed")
-          setUploading(false)
-        }
-      }
-
-      xhr.onerror = () => {
-        console.error("Image upload failed.")
-        toast.error("Image upload failed")
-        setUploading(false)
-      }
-
-      xhr.send(formData)
-    } catch (error) {
-      console.error("Image upload failed: ", error)
-      toast.error("Image upload failed")
-      setUploading(false)
-    }
-  }
-
   const handleImageChange = (e) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -195,7 +147,14 @@ console.log(userData);
       }
       reader.readAsDataURL(file)
 
-      uploadImage(file)
+      uploadImagePromised(file, setUploading, setUploadProgress)
+        .then((result) => {
+          setformUserData((prev) => ({ ...prev, image: result.url }))
+        })
+        .catch((error) => {
+          console.error("Image upload failed: ", error)
+          toast.error("Image upload failed")
+        })
     }
   }
 

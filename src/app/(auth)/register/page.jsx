@@ -35,6 +35,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { insertUser } from "@/lib/insertuser";
+import { uploadImagePromised } from "@/utils/upload-image";
 
 export default function ModernRegister() {
   const [activeTab, setActiveTab] = useState("student");
@@ -68,60 +69,6 @@ export default function ModernRegister() {
     setChips(chips.filter((chip) => chip !== chipToDelete));
   };
 
-  const uploadImage = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append(
-      "upload_preset",
-      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_PRESET || ""
-    );
-    formData.append(
-      "api_key",
-      process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || ""
-    );
-
-    try {
-      setUploading(true);
-      const xhr = new XMLHttpRequest();
-      xhr.open(
-        "POST",
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_PRESET}/image/upload`
-      );
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = (event.loaded / event.total) * 100;
-          setUploadProgress(percentComplete);
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
-          setUser({ ...user, image: data.secure_url });
-          setUploading(false);
-          setUploadProgress(0);
-        } else {
-          console.error("Image upload failed: ", xhr.responseText);
-          toast.error("Image upload failed");
-          setUploading(false);
-        }
-      };
-
-      xhr.onerror = () => {
-        console.error("Image upload failed.");
-        toast.error("Image upload failed");
-        setUploading(false);
-      };
-
-      xhr.send(formData);
-    } catch (error) {
-      console.error("Image upload failed: ", error);
-      toast.error("Image upload failed");
-      setUploading(false);
-    }
-  };
-
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -132,7 +79,14 @@ export default function ModernRegister() {
       };
       reader.readAsDataURL(file);
 
-      uploadImage(file);
+      uploadImagePromised(file, setUploading, setUploadProgress)
+        .then((result) => {
+          setUser((currentUser) => ({ ...currentUser, image: result.url }));
+        })
+        .catch((error) => {
+          console.error("Image upload failed: ", error);
+          toast.error("Image upload failed");
+        });
     }
   };
 

@@ -1,13 +1,4 @@
-const cloudinary = require('cloudinary').v2;
-
 // pdfkit will be loaded dynamically at runtime to avoid bundling issues
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
-  api_secret: process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET,
-});
 
 const DEFAULT_BRANDING = {
   organizationName: resolveEnv('CERT_ORG_NAME', 'ELIMUU'),
@@ -61,7 +52,7 @@ const LEVEL_STYLES = {
 /**
  * Generate Certificate PDF
  *
- * Creates a professional certificate PDF and uploads to Cloudinary
+ * Creates a professional certificate PDF and stores it locally
  */
 async function generateCertificatePDF(certificateData, options = {}) {
   try {
@@ -191,24 +182,15 @@ async function generateCertificatePDF(certificateData, options = {}) {
       };
     }
 
-    const result = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'raw',
-          folder: 'certificates',
-          public_id: `cert_${certificateNumber}`,
-        },
-        (error, uploadResult) => {
-          if (error) reject(error);
-          else resolve(uploadResult);
-        }
-      );
-
-      uploadStream.end(pdfBuffer);
+    const { saveBufferAsFile } = await import("./local-file-storage");
+    const result = await saveBufferAsFile(pdfBuffer, {
+      extension: ".pdf",
+      fileName: `cert-${certificateNumber}.pdf`,
+      prefix: "cert",
     });
 
     return {
-      url: result.secure_url,
+      url: result.url,
       public_id: result.public_id,
     };
   } catch (error) {
@@ -769,6 +751,3 @@ function resolveEnv(key, fallback) {
     fallback
   );
 }
-
-
-

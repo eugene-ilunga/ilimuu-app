@@ -1,51 +1,35 @@
-import { v2 as cloudinary } from 'cloudinary';
-import { NextResponse } from 'next/server';
-
-cloudinary.config({
-    cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
-    api_secret: process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET,
-  });
+import { NextResponse } from "next/server";
+import { deleteStoredFile } from "@/utils/local-file-storage";
 
 export  async function POST(req, res) {
+    let payload;
 
-    const formData = await req.formData();
-    const fileUrl = formData.get('fileUrl');
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      payload = await req.json();
+    } else {
+      const formData = await req.formData();
+      payload = {
+        fileUrl: formData.get("fileUrl"),
+        public_id: formData.get("public_id"),
+      };
+    }
 
-    // Check if fileUrl is provided
-    if (!fileUrl) {
-      return NextResponse.json({status: 500, error: 'Image URL is required' });
+    const fileReference = payload?.public_id || payload?.fileUrl;
+
+    if (!fileReference) {
+      return NextResponse.json({status: 400, error: "File reference is required" });
     }
 
     try {
-      // Extract the public ID from the image URL
-      const publicId = extractPublicId(fileUrl);
-      
-      // If publicId could not be extracted
-      if (!publicId) {
-        return NextResponse.json({status:500, error: 'Invalid Cloudinary URL' });
+      const result = await deleteStoredFile(fileReference);
+      if (!result.deleted && result.reason !== "not_found") {
+        return NextResponse.json({status:500, error: "Failed to delete file" });
       }
 
-      // Delete the image using the extracted public ID
-      const result = await cloudinary.uploader.destroy(publicId);
-
-      if (result.result !== 'ok') {
-        return NextResponse.json({status:500, error: 'Failed to delete image' });
-      }
-
-      return NextResponse.json({ status:200, message: 'Image deleted successfully' });
+      return NextResponse.json({ status:200, message: "File deleted successfully" });
     } catch (error) {
-      console.error('Error deleting image:', error);
-      return NextResponse.json({ status:500, error: 'Server error'+error.message });
+      console.error("Error deleting file:", error);
+      return NextResponse.json({ status:500, error: "Server error " + error.message });
     }
   } 
-
-// Utility function to extract public ID from Cloudinary URL
-function extractPublicId(url) {
-  // Use regex to capture the public ID part of the URL
-  const regex = /\/v\d+\/([^\/]+)\.[a-z]+$/;
-  const match = url.match(regex);
-  
-  // Return the public ID if found
-  return match ? match[1] : null;
-}

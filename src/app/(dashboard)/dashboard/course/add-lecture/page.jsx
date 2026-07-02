@@ -187,7 +187,7 @@ function Lecture() {
       ...Lecture,
       videoUrl: info.secure_url,
       video_public_id: info.public_id,
-      thumbnail: info.thumbnail_url,
+      thumbnail: info.thumbnail_url || null,
     });
   };
 

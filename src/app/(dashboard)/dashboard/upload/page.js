@@ -1,27 +1,52 @@
 "use client";
-import { CldUploadWidget } from "next-cloudinary";
+
 import { useState } from "react";
-export default function Photos() {
-  const [resource, setResource] = useState();
+
+export default function UploadPage() {
+  const [resource, setResource] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    setUploading(true);
+
+    try {
+      const response = await fetch("/api/fileupload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data?.status) {
+        throw new Error(data?.error || "Upload failed");
+      }
+
+      setResource(data);
+    } catch (error) {
+      console.error("Upload failed:", error);
+      setResource(null);
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
 
   return (
-    <div>
-      <CldUploadWidget
-        options={{ sources: ["local", "url", "unsplash"] }}
-        signatureEndpoint="/api/uploadimage"
-        onSuccess={(result, { widget }) => {
-          setResource(result?.info); // { public_id, secure_url, etc }
-          widget.close();
-        }}
-      >
-        {({ open }) => {
-          function handleOnClick() {
-            setResource(undefined);
-            open();
-          }
-          return <button onClick={handleOnClick}>Upload an Image</button>;
-        }}
-      </CldUploadWidget>
+    <div className="space-y-4 p-6">
+      <input type="file" onChange={handleChange} />
+      {uploading && <p>Uploading...</p>}
+      {resource && (
+        <div className="space-y-2">
+          <p>URL: {resource.url}</p>
+          <p>Identifier: {resource.public_id}</p>
+        </div>
+      )}
     </div>
   );
 }
