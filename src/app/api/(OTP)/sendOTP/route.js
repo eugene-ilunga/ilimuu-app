@@ -4,7 +4,13 @@ import { connectToDB } from "@/utils/database";
 import { Resend } from "resend";
 import { EmailTemplate } from "@/components/EmailTemplate";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResendClient() {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Missing RESEND_API_KEY");
+  }
+
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 export async function POST(req) {
   const formData = await req.formData();
@@ -35,6 +41,7 @@ export async function POST(req) {
       { new: true }
     );
 
+    const resend = getResendClient();
     const { data, error } = await resend.emails.send({
       from: `${process.env.APPNAME} <onboarding@sbayshop.com>`,
       to: [email],
@@ -52,7 +59,9 @@ export async function POST(req) {
       data,
     });
   } catch (error) {
-    
-    return NextResponse.json({status:500, message: "Failed to send OTP" }, { status: 500 });
+    return NextResponse.json(
+      { status: 500, message: error.message || "Failed to send OTP" },
+      { status: 500 }
+    );
   }
 }

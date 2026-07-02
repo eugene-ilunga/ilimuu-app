@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResendClient() {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Missing RESEND_API_KEY");
+  }
+
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 export async function POST(req) {
   try {
@@ -19,6 +25,7 @@ export async function POST(req) {
     const emailContent = templateFunction(templateData);
 
     // Send email using Resend
+    const resend = getResendClient();
     const { data, error } = await resend.emails.send({
       from: `${process.env.APPNAME} <no-reply@yourdomain.com>`,
       to: [email],
@@ -48,4 +55,3 @@ export async function POST(req) {
     });
   }
 }
-
