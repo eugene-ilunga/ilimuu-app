@@ -71,7 +71,7 @@ async function generateCertificatePDF(certificateData, options = {}) {
       const pdfkitModule = require('pdfkit');
       // pdfkit exports the constructor directly
       PDFDocumentClass = pdfkitModule;
-      
+
       // Handle different export formats
       if (typeof PDFDocumentClass !== 'function') {
         if (pdfkitModule.default && typeof pdfkitModule.default === 'function') {
@@ -88,7 +88,7 @@ async function generateCertificatePDF(certificateData, options = {}) {
       }
       throw error;
     }
-    
+
     if (typeof PDFDocumentClass !== 'function') {
       throw new Error('PDFDocument is not a constructor. pdfkit may not be installed correctly.');
     }
@@ -172,13 +172,13 @@ async function generateCertificatePDF(certificateData, options = {}) {
         doc.removeListener('error', errorHandler);
         reject(error);
       };
-      
+
       const endHandler = () => {
         doc.removeListener('end', endHandler);
         doc.removeListener('error', errorHandler);
         resolve(Buffer.concat(chunks));
       };
-      
+
       doc.on('end', endHandler);
       doc.on('error', errorHandler);
       doc.end();
@@ -603,7 +603,7 @@ function drawFooter(doc, theme, certificateNumber, branding, pageWidth, pageHeig
   doc.font('Helvetica')
     .fontSize(9)
     .text(
-      'Vérifiez l'authenticité avec le code de vérification ci-dessus',
+      "Vérifiez l'authenticité avec le code de vérification ci-dessus",
       0,
       footerY + 38,
       {
